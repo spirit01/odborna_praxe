@@ -29,7 +29,7 @@ class Point:
 
    def Print_energy(self):
        print("Angle \t"+  str(self.Geom1) + " \t E_tot  \t" + str(self.E_tot)+
-        "\t E_scf \t" + str(self.E_scf) + " \t E_corr \t" + str(self.E_corr)  )
+             "\t E_scf \t" + str(self.E_scf) + " \t E_corr \t" + str(self.E_corr))
        print("TCutPNO \t" + str(self.TCutPNO))
 
    def Print_parametrs_of_calculation(self):
@@ -49,25 +49,17 @@ def get_argument():
     return(args)
 
 def find_clean_epsilon_and_twist(file):
-    number=[]
-    angle=[]
+    number = []
+    angle = []
     points = []
-    with open (file, "r") as f:
+    with open (file,encoding='iso8859-1') as f:
         for line in f:
-            #print(line)
             if 'CleanEpsilon0' in line:
-                #energy=re.findall('[CleanEpsilon0]* \d+', line)
-                #energy = float(line[line.index(b'is')+1:15])
-                #i = str.find("CleanEpsilon0 is", line)
-                #k = str.find
                 number.append(float(line[16:])),
             if 'TWIST  :' in line:
                 angle.append(float(line[23:]))
-    #print(angle)
-    #print(number)
 
     if(len(number)) == len(angle):
-        #print ("equal")
         for i in range(len(number)):
             c = Point()
             c.E_tot = number[i]
@@ -76,92 +68,64 @@ def find_clean_epsilon_and_twist(file):
 
     else:
         print("Error in number of angle or energy")
-    #for point in points:
-    #    point.Print_energy()
-    print()
     return(points)
 
 
 def find_basis(i,points):
     bases = []
-    with open(i,"r") as f:
+    with open(i,encoding='iso8859-1') as f:
         for line in f:
             if 'Your calculation utilizes' in line:
-                #print("HERE")
                 bases = line[line.index(":")+1:line.index("\n")]
-
     for point in points:
         point.Basis = str(bases)
-    #point.Print_parametrs_of_calculation()
     return(points)
 
 def find_cutpno(i, points):
-    #value_cutpno = []
-    with open(i,"r") as f:
+    with open(i,encoding = 'iso8859-1') as f:
         for line in f:
             if '| 46> tcutpno' in line:
                 value_cutpno = float(line[14:])
-                #print("hodnota ",value_cutpno)
     for point in points:
         point.TCutPNO = value_cutpno
-        #print(len(points))
-
     return(points)
 
 def find_cutpairs(i, point):
-    #value_cutpairs = []
-    with open(i, "r") as f:
+    with open(i,encoding='iso8859-1') as f:
         for line in f:
             if 'tcutpairs' in line:
                 if '#' in line:
                     print(" ")
                 else:
                     value_cutpairs = float(line[16:])
-                    print("TCutPais hodnota ",value_cutpairs)
+
                     for point in points:
                         point.TCutPairs =  value_cutpairs
-    #print(value_cutpairs)
     return(points)
 
 def find_SCF_energy(i, points):
-    #space = []
     value_SCF_energy = []
-
-    with open(i, "r") as f:
+    with open(i, encoding = 'iso8859-1') as f:
         for line in f:
-            #line = f.readlines()
             if 'Total Energy ' in line:
-                #print(line)
-                #space = ''.join(islice(f, 2,3))
-                #print(space)
                 value_SCF_energy.append(float(line[20:line.index('Eh')]))
-    #print("value scf",value_SCF_energy)
     i=0
     for point in points:
         point.E_scf = value_SCF_energy[i]
-        i=i+1
-
-
-
-    #point.Print_parametrs_of_calculation()
-
+        i = i+1
     return(points)
 
 def calculate_corr_E(i, points):
     for point in points:
         point.CalcE_corr()
-        point.Print_energy()
-
     return(points)
 
 def find_auxbasis(i,points):
     auxbases = []
-    with open(i,"r") as f:
+    with open(i,encoding='iso8859-1') as f:
         for line in f:
             if '| 19> Auxbasis "' in line:
-
                 auxbases = line[16:len(line)-2]
-                print(auxbases)
     for point in points:
         point.AuxBasis = auxbases
 
@@ -180,28 +144,30 @@ def filter_by_basis(i, points):
 def make_list_of_basis(i,points):
     a = []
     a = (i[7:i.index("_pno")])
-    print(a)
 
+
+def print_points(points):
+    for point in points:
+        point.Print_energy()
+        point.Print_parametrs_of_calculation()
 
 if __name__ == '__main__':
-    i=0
-    args=get_argument()
-    list_of_file = []
-    #print(args)
-    files = listdir(args.myDirVariable)
-    #print(files)
 
+    args = get_argument()
+    list_of_file = []
+
+    files = listdir(args.myDirVariable)
     for line in files:
         line = line.rstrip()
         if re.search('output.', line):
             list_of_file.append(line)
-    #print("text",list_of_file)
+
     number_of_file = len(list_of_file)
     print("Number of file for analysis:", number_of_file)
 
     points_all = []
     for file in list_of_file:
-        #print("newfile   ",file)
+
         points = find_clean_epsilon_and_twist(file)
         points = find_auxbasis(file, points)
         points = find_basis(file, points)
@@ -211,8 +177,5 @@ if __name__ == '__main__':
         points = calculate_corr_E(file, points)
         #filter_by_basis(file, points)
         points_all += points
-    #print("done with all files")
         make_list_of_basis(file,points)
-        points[i].Print_parametrs_of_calculation()
-        #points[i].Print_parametrs_of_calculation()
-        i=i+1
+        print_points(points)
