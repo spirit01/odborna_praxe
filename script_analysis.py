@@ -14,7 +14,8 @@ from itertools import islice
 
 class Point:
    def __init__(self, Geom1 = -10, E_tot = 10000, E_scf = 10000, E_corr = 5,
-                Basis="", AuxBasis="", TCutPNO=3.3e-7, TCutPairs=1.0e-4, Method = "cat"):
+                Basis="", AuxBasis="", TCutPNO=3.3e-7, TCutPairs = 1.0e-4,
+                Method = "", Count = 100):
          self.Geom1 = Geom1
          self.E_tot = E_tot
          self.E_scf = E_scf
@@ -24,6 +25,8 @@ class Point:
          self.TCutPNO = TCutPNO
          self.TCutPairs = TCutPairs
          self.Method = Method
+         self.Count = Count
+
 
    def CalcE_corr(self):
        self.E_corr = self.E_tot - self.E_scf
@@ -37,6 +40,9 @@ class Point:
        print("Use basis \t" + self.Basis)
        print("AuxBasis \t" + self.AuxBasis)
        print("TCutPairs \t" + str(self.TCutPairs))
+
+   def Print_name_of_file(self):
+       print("Name of file",)
 
 
 
@@ -85,7 +91,7 @@ def find_basis(i,points):
 def find_cutpno(i, points):
     with open(i,encoding = 'iso8859-1') as f:
         for line in f:
-            if '| 46> tcutpno' in line:
+            if 'tcutpno' in line:
                 value_cutpno = float(line[14:])
     for point in points:
         point.TCutPNO = value_cutpno
@@ -127,23 +133,13 @@ def find_auxbasis(i,points):
         for line in f:
             if 'Auxbasis "' in line:
                 auxbases = line[line.index('"')+1:len(line)-2]
-                print(auxbases)
+                break
+            else:
+                auxbases = str('not given')    #print(auxbases)
     for point in points:
         point.AuxBasis = auxbases
 
     return(points)
-
-
-def filter_by_basis(i, points,list_of_all_basis):
-    #print("HERE")
-    for point in points:
-        if point.Basis == '6-31G':
-            print("basis")
-        else:
-            print(" ")
-            #print(point.Basis)
-
-
 
 def make_list_of_basis(i,points,list_of_all_basis):
     for point in points:
@@ -152,7 +148,7 @@ def make_list_of_basis(i,points,list_of_all_basis):
             print("")
         else:
             list_of_all_basis.append(a)
-    print(list_of_all_basis)
+    #print(list_of_all_basis)
     return(list_of_all_basis)
 
 
@@ -160,30 +156,88 @@ def print_points(points):
     for point in points:
         point.Print_energy()
         point.Print_parametrs_of_calculation()
-"""
-def find_method(i, points):
-    method = []
-    with open(i,encoding='iso8859-1') as f:
-        for line in f:
-            if 'mrcctype' in line:
-                method = line[1:len(line)-2]
-                #print(method)
+
+def sort_point_by_basis(points):
+    points = sorted(points, key = lambda point: point.Basis)
     for point in points:
-        point.Method = method
-"""
+        point.Print_parametrs_of_calculation()
+    return()
+
+def find_reduced_text(i):
+    list_of_method = []
+    string = []
+    reduced_text = []
+    with open(i, encoding='iso8859-1') as f:
+        string = f.read()
+        k = int(string.find('INPUT FILE'))
+        j = int(string.find('****END OF INPUT****'))
+        reduced_text = string[k : j]
+    #print(reduced_text)
+    return(reduced_text)
+
+def make_workfile(i, points, reduced_text):
+    with open('workfile','w') as f:
+            f.write(reduced_text)
+    #print(reduced_text)
+
+def find_method(points, reduced_text):
+    #print("workfile")
+    name_of_basis = []
+    #print(name_of_basis)
+    with open('workfile', 'r') as f:
+        for line in f:
+            if '> !' in line:
+                if 'lpno-ccsd' in line:
+                    for line in f:
+                        if 'mrcc on' in line:
+                            print('There is mrcc on')
+                            for line in f:
+                                if 'mrcctype mkcc' in line:
+                                    name_of_basis = ['LPNO-MkCCSD']
+                                    #print('LPNO-MkCCSD')
+                                if 'mrcctype BWCC' in line:
+                                    print('LPNO-BWCCSD')
+                                    name_of_basis = ['LPNO-BWCCSD']
+
+                        if 'mrcc off' in line:
+                            name_of_basis = ['LPNOCCSD']
+                            #print("LPNOCCSD")
+                if ' ccsd ' in line:
+                    #print('ccsd')
+                    for line in f:
+                        if 'mrcc on' in line:
+                            for line in f:
+                                if 'mrcctype mkcc' in line:
+                                    name_of_basis = ['MkCCSD']
+                                    #print('MkCCSD')
+                                if 'mrcctype BWCC' in line:
+                                    name_of_basis = ['BWCCSD']
+                                    #print('BWCCSD')
+                        if 'mrcc off' in line:
+                            name_of_basis = ['CCSD']
+                            #print('CCSD')
+
+    for point in points:
+        point.Method = name_of_basis
+    print(name_of_basis)
+    return(points)
+
 if __name__ == '__main__':
     args = get_argument()
     list_of_file = []
     files = listdir(args.myDirVariable)
     for line in files:
         line = line.rstrip()
-        if re.search('output.', line):
+        if re.search('test_output', line):
             list_of_file.append(line)
-
     number_of_file = len(list_of_file)
+
+
+
     print("Number of file for analysis:", number_of_file)
     list_of_all_basis = []
     points_all = []
+    reduced_text = []
     for file in list_of_file:
         points = find_clean_epsilon_and_twist(file)
         points = find_auxbasis(file, points)
@@ -193,11 +247,18 @@ if __name__ == '__main__':
         points = find_SCF_energy(file, points)
         points = calculate_corr_E(file, points)
         points_all += points
-        make_list_of_basis(file,points,list_of_all_basis)
+        make_list_of_basis(file, points, list_of_all_basis)
         #filter_by_basis(file, points,list_of_all_basis)
         #print(list_of_all_basis)
-        #points = find_method(file, points)
+        reduced_text = find_reduced_text(file)
+
+        make_workfile(file, points, reduced_text)
+        #print(len(points))
+        points = find_method(points, reduced_text)
+        #print(reduced_text)
         if args.verbose:
             print("")#("Verbose mode")
         else:
             print_points(points)
+    #sort_point_by_basis(points_all)
+    #print(list_of_all_basis)
