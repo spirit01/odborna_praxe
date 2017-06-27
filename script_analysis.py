@@ -9,8 +9,12 @@ import random
 import subprocess
 from math import sqrt
 import ast
-from itertools import islice
+#from itertools import islice
 
+
+Method_list_LPNO = ['LPNO-MkCCSD', 'LPNO-BWCCSD', 'LPNOCCSD']
+Method_list_canonical = ['MkCCSD', 'BWCCSD', 'CCSD']
+dictionary_lpno_and_can = {'LPNO-MkCCSD': 'MkCCSD', 'LPNO-BWCCSD': 'BWCCSD', 'LPNOCCSD':'CCSD' }
 
 class Point:
    def __init__(self, Geom1 = -10, E_tot = 10000, E_scf = 10000, E_corr = 5,
@@ -182,8 +186,8 @@ def make_workfile(i, points, reduced_text):
 
 def find_method(points, reduced_text):
     #print("workfile")
-    name_of_basis = []
-    #print(name_of_basis)
+    name_of_method = []
+    #print(name_of_method)
     with open('workfile', 'r') as f:
         for line in f:
             if '> !' in line:
@@ -193,14 +197,14 @@ def find_method(points, reduced_text):
                             print('There is mrcc on')
                             for line in f:
                                 if 'mrcctype mkcc' in line:
-                                    name_of_basis = ['LPNO-MkCCSD']
+                                    name_of_method = str('LPNO-MkCCSD')
                                     #print('LPNO-MkCCSD')
                                 if 'mrcctype BWCC' in line:
                                     print('LPNO-BWCCSD')
-                                    name_of_basis = ['LPNO-BWCCSD']
+                                    name_of_method = str('LPNO-BWCCSD')
 
                         if 'mrcc off' in line:
-                            name_of_basis = ['LPNOCCSD']
+                            name_of_method = str('LPNOCCSD')
                             #print("LPNOCCSD")
                 if ' ccsd ' in line:
                     #print('ccsd')
@@ -208,19 +212,53 @@ def find_method(points, reduced_text):
                         if 'mrcc on' in line:
                             for line in f:
                                 if 'mrcctype mkcc' in line:
-                                    name_of_basis = ['MkCCSD']
+                                    name_of_method = str('MkCCSD')
                                     #print('MkCCSD')
                                 if 'mrcctype BWCC' in line:
-                                    name_of_basis = ['BWCCSD']
+                                    name_of_method = str('BWCCSD')
                                     #print('BWCCSD')
                         if 'mrcc off' in line:
-                            name_of_basis = ['CCSD']
+                            name_of_method = str('CCSD')
                             #print('CCSD')
 
     for point in points:
-        point.Method = name_of_basis
-    print(name_of_basis)
+        point.Method = name_of_method
+    print('Name of method',name_of_method)
     return(points)
+
+def count_correlation_energy(points):
+    print(len(points))
+    points_all_lpno = []
+    points_all_canonical = []
+    canonic_method = []
+    #print(dictionary_lpno_and_can.keys())
+    #print(str(dictionary_lpno_and_can))
+    #print(dictionary_lpno_and_can['LPNOCCSD'])
+    for point in points:
+        if point.Method in Method_list_LPNO:
+                points_all_lpno.append(point)
+        if point.Method in Method_list_canonical:
+                points_all_canonical.append(point)
+                #print('delka',len(points_all_canonical))
+
+    print('delka2',len(points_all_canonical))
+
+    for point in points_all_lpno:
+        canonic_method = dictionary_lpno_and_can[point.Method]
+        print('canonic_method',canonic_method)
+        #print(len(points_all_canonical))
+        for point2 in points_all_canonical:
+            #print('print',dictionary_lpno_and_can[point.Method])
+            if point2.Method in canonic_method:
+            #if point.Geom1 == point2.Geom1:
+                if point.Basis == point2.Basis:
+                    if point.Geom1 == point2.Geom1:
+                        print('HERE')
+                        result = float(point.E_corr/point2.E_corr)
+                        print('result', result)
+
+
+    return()
 
 if __name__ == '__main__':
     args = get_argument()
@@ -246,7 +284,7 @@ if __name__ == '__main__':
         points = find_cutpno(file,points)
         points = find_SCF_energy(file, points)
         points = calculate_corr_E(file, points)
-        points_all += points
+
         make_list_of_basis(file, points, list_of_all_basis)
         #filter_by_basis(file, points,list_of_all_basis)
         #print(list_of_all_basis)
@@ -256,9 +294,12 @@ if __name__ == '__main__':
         #print(len(points))
         points = find_method(points, reduced_text)
         #print(reduced_text)
+        points_all += points
         if args.verbose:
             print("")#("Verbose mode")
         else:
             print_points(points)
     #sort_point_by_basis(points_all)
     #print(list_of_all_basis)
+
+    count_correlation_energy(points_all)
