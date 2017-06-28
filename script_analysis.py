@@ -9,12 +9,18 @@ import random
 import subprocess
 from math import sqrt
 import ast
+import numpy as np
+import matplotlib.pyplot as plt
+#from beautifultable import BeautifulTable
 #from itertools import islice
 
 
 Method_list_LPNO = ['LPNO-MkCCSD', 'LPNO-BWCCSD', 'LPNOCCSD']
 Method_list_canonical = ['MkCCSD', 'BWCCSD', 'CCSD']
 dictionary_lpno_and_can = {'LPNO-MkCCSD': 'MkCCSD', 'LPNO-BWCCSD': 'BWCCSD', 'LPNOCCSD':'CCSD' }
+Basis_list = []
+MethodList = []
+TCutPNO_list = []
 
 class Point:
    def __init__(self, Geom1 = -10, E_tot = 10000, E_scf = 10000, E_corr = 5,
@@ -39,6 +45,8 @@ class Point:
        print("Angle \t"+  str(self.Geom1) + " \t E_tot  \t" + str(self.E_tot)+
              "\t E_scf \t" + str(self.E_scf) + " \t E_corr \t" + str(self.E_corr))
        print("TCutPNO \t" + str(self.TCutPNO))
+       print("Fraction_of_corr_energy", str(self.Count))
+       print("Method", str(self.Method))
 
    def Print_parametrs_of_calculation(self):
        print("Use basis \t" + self.Basis)
@@ -92,13 +100,24 @@ def find_basis(i,points):
         point.Basis = str(bases)
     return(points)
 
+#def find_method_for_tcutpno(i,points):
+
+
 def find_cutpno(i, points):
-    with open(i,encoding = 'iso8859-1') as f:
-        for line in f:
-            if 'tcutpno' in line:
-                value_cutpno = float(line[14:])
+
+    value_cutpno = []
     for point in points:
-        point.TCutPNO = value_cutpno
+        if point.Method in Method_list_canonical:
+            point.TCutPNO = 'None'
+            #print('HERE')
+        else:
+            #point.TCutPNO = value_cutpno
+            with open(i,encoding = 'iso8859-1') as f:
+                for line in f:
+                    if 'tcutpno' in line:
+                            value_cutpno = float(line[14:])
+                            point.TCutPNO = value_cutpno
+
     return(points)
 
 def find_cutpairs(i, point):
@@ -227,9 +246,10 @@ def find_method(points, reduced_text):
     return(points)
 
 def count_correlation_energy(points):
-    print(len(points))
+    #print(len(points))
     points_all_lpno = []
     points_all_canonical = []
+    points_remainder = []
     canonic_method = []
     #print(dictionary_lpno_and_can.keys())
     #print(str(dictionary_lpno_and_can))
@@ -237,15 +257,17 @@ def count_correlation_energy(points):
     for point in points:
         if point.Method in Method_list_LPNO:
                 points_all_lpno.append(point)
-        if point.Method in Method_list_canonical:
+        elif point.Method in Method_list_canonical:
                 points_all_canonical.append(point)
+        else:
+                poin.append(point)
                 #print('delka',len(points_all_canonical))
 
-    print('delka2',len(points_all_canonical))
+    #print('delka2',len(points_all_canonical))
 
     for point in points_all_lpno:
         canonic_method = dictionary_lpno_and_can[point.Method]
-        print('canonic_method',canonic_method)
+        #print('canonic_method',canonic_method)
         #print(len(points_all_canonical))
         for point2 in points_all_canonical:
             #print('print',dictionary_lpno_and_can[point.Method])
@@ -253,12 +275,109 @@ def count_correlation_energy(points):
             #if point.Geom1 == point2.Geom1:
                 if point.Basis == point2.Basis:
                     if point.Geom1 == point2.Geom1:
-                        print('HERE')
+                        #print('HERE')
                         result = float(point.E_corr/point2.E_corr)
-                        print('result', result)
+                        #print('result', result)
+                        point.Count = result
+
+    points = points_all_lpno + points_all_canonical + points_remainder
+
+    return(points)
 
 
-    return()
+#def prepare_data_for_plot():
+#    for point in points_all:
+#        with open('file_for_plot', 'w') as f:
+#            f.write("""{s1} \t text \t text \n""".format(s1=point.Method))
+
+def make_BasisList(points_all):
+    for point in points_all:
+        if point.Basis in Basis_list:
+            print()
+        else:
+            Basis_list.append(point.Basis)
+    print(Basis_list)
+
+def make_MethodList(points_all):
+    for point in points_all:
+        if point.Method in MethodList:
+            print()
+        else:
+            MethodList.append(point.Method)
+    print(MethodList)
+
+def make_TCutPNOList(points_all):
+    for point in points_all:
+        if point.TCutPNO in TCutPNO_list or point.TCutPNO == 'None':
+            print()
+        else:
+            TCutPNO_list.append(point.TCutPNO)
+    for i in TCutPNO_list:
+        if i == 'None':
+            TCutPNO_list.translate
+    print(TCutPNO_list)
+
+def filter_by_basis(points_all,Basis):
+    #'LPNO-MkCCSD', 'LPNO-BWCCSD', 'LPNOCCSD'
+    points_out = []
+    for point in points_all:
+        if point.Basis == Basis:
+            points_out.append(point)
+    return(points_out)
+
+def filter_by_method(points_f1, Method):
+    points_out = []
+    for point in points_f1:
+        if point.Method == Method:
+            points_out.append(point)
+    return(points_out)
+
+def filter_by_tcutpno(points_f2,tcutpno):
+    points_out = []
+    for point in points_f2:
+        if point.TCutPNO == tcutpno:
+            points_out.append(point)
+    return(points_out)
+"""
+    list_6_31g_LPNO_MkCCSD = []
+    list_6_31g_LPNO_BWCCSD = []
+    list_6_31g_LPNOCCSD = []
+    list_pvtz_LPNO_MkCCSD = []
+    list_pvtz_LPNO_BWCCSD = []
+    list_pvtz_LPNOCCSD = []
+    list_pvdz_LPNO_MkCCSD = []
+    list_pvdz_LPNO_BWCCSD = []
+    list_pvdz_LPNOCCSD = []
+
+
+
+        if point.Basis == Basis_list[0]:
+            if point.Method == Method_list_LPNO[1]:
+                list_6_31g_LPNO_MkCCSD.append(point)
+        elif point.Basis == Basis_list[1]:
+            if point.Method == Method_list_LPNO[2]:
+                list_pvdz_LPNO_BWCCSD.append(point)
+        elif point.Basis == Basis_list[2]:
+            list_6_pvtz_LPNOCCSD.append(point)
+
+    for point in points_all:
+        if point.Method == MethodList[0]:
+"""
+
+def prepare_data_for_plot(points_all):
+
+    for point in points_all:
+        for Basis in Basis_list:
+            points_f1 = filter_by_basis(points_all, Basis)
+            for Method in Method_list_LPNO:
+                points_f2 = filter_by_method(points_f1, Method)
+                for tcutpno in TCutPNO_list:
+                    points_final = filter_by_tcutpno(points_f2,tcutpno)
+                    print('==================================================')
+                    print_points(points_final)
+                    #points_final.Print_parametrs_of_calculation()
+                    print('vysledek',Basis, Method, tcutpno)
+
 
 if __name__ == '__main__':
     args = get_argument()
@@ -266,9 +385,10 @@ if __name__ == '__main__':
     files = listdir(args.myDirVariable)
     for line in files:
         line = line.rstrip()
-        if re.search('test_output', line):
+        if re.search('output.', line):
             list_of_file.append(line)
     number_of_file = len(list_of_file)
+    print(list_of_file)
 
 
 
@@ -280,26 +400,35 @@ if __name__ == '__main__':
         points = find_clean_epsilon_and_twist(file)
         points = find_auxbasis(file, points)
         points = find_basis(file, points)
+        reduced_text = find_reduced_text(file)
+        make_workfile(file, points, reduced_text)
+        points = find_method(points, reduced_text)
         points = find_cutpairs(file,points)
         points = find_cutpno(file,points)
         points = find_SCF_energy(file, points)
         points = calculate_corr_E(file, points)
 
         make_list_of_basis(file, points, list_of_all_basis)
-        #filter_by_basis(file, points,list_of_all_basis)
+
         #print(list_of_all_basis)
         reduced_text = find_reduced_text(file)
 
-        make_workfile(file, points, reduced_text)
+        #make_workfile(file, points, reduced_text)
         #print(len(points))
-        points = find_method(points, reduced_text)
+        #points = find_method(points, reduced_text)
         #print(reduced_text)
         points_all += points
+
+    #sort_point_by_basis(points_all)
+    #print(list_of_all_basis)
+
+        points = count_correlation_energy(points_all)
         if args.verbose:
             print("")#("Verbose mode")
         else:
             print_points(points)
-    #sort_point_by_basis(points_all)
-    #print(list_of_all_basis)
 
-    count_correlation_energy(points_all)
+    make_BasisList(points_all)
+    make_MethodList(points_all)
+    make_TCutPNOList(points_all)
+    prepare_data_for_plot(points_all)
