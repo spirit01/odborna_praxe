@@ -23,6 +23,7 @@ MethodList = []
 TCutPNO_list = []
 Geom_list = []
 
+
 class Point:
    def __init__(self, Geom1 = -10, E_tot = 10000, E_scf = 10000, E_corr = 5,
                 Basis="", AuxBasis="", TCutPNO=3.3e-7, TCutPairs = 1.0e-4,
@@ -340,6 +341,7 @@ def filter_by_tcutpno(points_f2,tcutpno):
             points_out.append(point)
     return(points_out)
 
+
 def make_GeomList(points_all):
     for point in points_all:
         if point.Geom1 in Geom_list:
@@ -375,6 +377,7 @@ def make_GeomList(points_all):
     for point in points_all:
         if point.Method == MethodList[0]:
 """
+
 def check_geometrie(points_3):
     list_point_final = []
     for point in points_3:
@@ -417,6 +420,7 @@ def make_result_file(points_final):
 
 
 
+
 if __name__ == '__main__':
     args = get_argument()
     list_of_file = []
@@ -435,7 +439,9 @@ if __name__ == '__main__':
     points_all = []
     reduced_text = []
     for file in list_of_file:
+
         #points_final.Print_parametrs_of_calculation()
+
 
         points = find_clean_epsilon_and_twist(file)
         points = find_auxbasis(file, points)
@@ -471,5 +477,7 @@ if __name__ == '__main__':
     make_BasisList(points_all)
     make_MethodList(points_all)
     make_TCutPNOList(points_all)
+
     make_GeomList(points_all)
+
     prepare_data_for_plot(points_all)
