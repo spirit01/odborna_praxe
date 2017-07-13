@@ -4,20 +4,20 @@
 shopt -s expand_aliases
 alias pow='python -c "from sys import argv as a; print(pow(float(a[1]), float(a[2])))"'
 
-for i in cc-pvdz cc-pvtz 6-31g :
+for i in 0.0 10. 20. 30. 40. 50. 60. 70. 80. 90. 10.  :
   do
-    cp input tmp1
+    cp input_can_pvtz tmp1
     sed -i "s/XXXXX/${i}/g" tmp1
-    mv tmp1 input.$i
-    #k = 0
-    for j in $(seq -8.3333 0.3333 -5.000);
-      do
+    mv tmp1 input_can_pvtz.$i
+    #k = 0_can
+    #for j in $(seq -8.3333 0.3333 -5.000);
+     # do
 	#echo $(echo $(pow 10 $j) | sed -e 's/[eE]+*/\*10\^/' | bc -l)
 	
 	#echo $k
-	 cp input.$i tmp_pno
-	sed -i "s/ZZZZZ/$(echo $(pow 10 $j) | sed -e 's/[eE]+*/\*10\^/' | bc -l)/g" tmp_pno
-	mv tmp_pno input.${i}.${j}
-      done
+	# cp input.$i tmp_pno
+	#sed -i "s/ZZZZZ/$(echo $(pow 10 $j) | sed -e 's/[eE]+*/\*10\^/' | bc -l)/g" tmp_pno
+	#mv tmp_pno input.${i}.${j}
+      #done
 
   done
