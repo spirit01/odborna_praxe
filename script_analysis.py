@@ -10,7 +10,7 @@ import subprocess
 from math import sqrt
 import ast
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 #from beautifultable import BeautifulTable
 #from itertools import islice
 
@@ -62,7 +62,7 @@ class Point:
 
 def get_argument():
     parser = ArgumentParser()
-    parser.add_argument("-d", "--dir", dest="myDirVariable",
+    parser.add_argument("-d", "--dir", dest="mydirvariable",
                         help="Choose dir", metavar="DIR", required=True)
     parser.add_argument("--verbose", help="increase output verbosity", action="store_true")
 
@@ -122,17 +122,18 @@ def find_cutpno(i, points):
 
     return(points)
 
-def find_cutpairs(i, point):
+def find_cutpairs(i, points):
     with open(i,encoding='iso8859-1') as f:
         for line in f:
             if 'tcutpairs' in line:
                 if '#' in line:
                     print(" ")
+                    value_cutpairs = 0
                 else:
                     value_cutpairs = float(line[16:])
-
-                    for point in points:
-                        point.TCutPairs =  value_cutpairs
+                    print(line)
+    for point in points:
+        point.TCutPairs = value_cutpairs
     return(points)
 
 def find_SCF_energy(i, points):
@@ -287,10 +288,10 @@ def count_correlation_energy(points):
     return(points)
 
 
-#def prepare_data_for_plot():
-#    for point in points_all:
-#        with open('file_for_plot', 'w') as f:
-#            f.write("""{s1} \t text \t text \n""".format(s1=point.Method))
+def prepare_data_for_plot():
+    for point in points_all:
+        with open('file_for_plot', 'w') as f:
+            f.write("""{s1} \t text \t text \n""".format(s1=point.Method))
 
 def make_BasisList(points_all):
     for point in points_all:
@@ -318,28 +319,6 @@ def make_TCutPNOList(points_all):
         if i == 'None':
             TCutPNO_list.translate
     print(TCutPNO_list)
-
-def filter_by_basis(points_all,Basis):
-    #'LPNO-MkCCSD', 'LPNO-BWCCSD', 'LPNOCCSD'
-    points_out = []
-    for point in points_all:
-        if point.Basis == Basis:
-            points_out.append(point)
-    return(points_out)
-
-def filter_by_method(points_f1, Method):
-    points_out = []
-    for point in points_f1:
-        if point.Method == Method:
-            points_out.append(point)
-    return(points_out)
-
-def filter_by_tcutpno(points_f2,tcutpno):
-    points_out = []
-    for point in points_f2:
-        if point.TCutPNO == tcutpno:
-            points_out.append(point)
-    return(points_out)
 
 
 def make_GeomList(points_all):
@@ -388,23 +367,21 @@ def check_geometrie(points_3):
     return(list_point_final)
 
 def prepare_data_for_plot(points_all):
-    list_of_use_method = []
-    for method in Method_list_LPNO:
-        if method in MethodList:
-            list_of_use_method.append(method)
+    list_of_use_method = [method for method in Method_list_LPNO if method in MethodList]
     print(list_of_use_method)
-    for point in points_all:
-        for Basis in Basis_list:
-            points_f1 = filter_by_basis(points_all, Basis)
-            for Method in list_of_use_method:
-                points_f2 = filter_by_method(points_f1, Method)
-                for tcutpno in TCutPNO_list:
-                    points_f3 = filter_by_tcutpno(points_f2,tcutpno)
-                    points_final = check_geometrie(points_f3)
-                    print('==================================================')
-                    print_points(points_final)
-                    print('vysledek',Basis, Method, tcutpno)
+    for Basis in Basis_list:
+        points_f1 = [p for p in points_all if p.Basis == Basis]
+        for Method in list_of_use_method:
+            points_f2 = [p for p in points_f1 if p.Method == Method]
+            for tcutpno in TCutPNO_list:
+                points_f3 = [p for p in points_f2 if p.TCutPNO == tcutpno]
+                points_final = check_geometrie(points_f3)
+                print('==================================================')
+                print_points(points_final)
+                print('vysledek', Basis, Method, tcutpno)
     make_result_file(points_final)
+    make_result_file_for_latex(points_final)
+
 
 def make_result_file(points_final):
     tmp_string_geom = []
@@ -413,18 +390,45 @@ def make_result_file(points_final):
     with open('final_data_for_plot', 'w') as f:
         for point in points_final:
             tmp_string_geom.append(point.Geom1)
+            tmp_string_energy.append(str(point.E_tot)  )
+            tmp_string_tcutpno.append(point.TCutPNO)
+        f.write('-' + '\t')
+        for i in range(len(tmp_string_geom)):
+            f.write(str(tmp_string_geom[i])+('\t'))
+        f.write(str(tmp_string_tcutpno[0]) + '\t')
+        for i in range(len(tmp_string_energy)):
+            #f.write(str(tmp_string_tcutpno[0]) + '\t')
+            f.write(str(tmp_string_energy[i])+ '\t')
+
+def make_result_file_for_latex(points_final):
+    tmp_string_geom = []
+    tmp_string_energy = []
+    tmp_string_tcutpno = []
+    with open('final_data_for_plot_latex', 'w') as f:
+        for point in points_final:
+            tmp_string_geom.append(point.Geom1)
             tmp_string_energy.append(str(point.E_tot) + '&' )
             tmp_string_tcutpno.append(point.TCutPNO)
-        f.write(str(tmp_string_geom)+('\n'))
-        f.write(str(tmp_string_tcutpno[0]) + str(tmp_string_energy))
+        f.write('-' + '&')
+        for i in range(len(tmp_string_geom)):
+            if i != len(tmp_string_geom):
+                f.write(str(tmp_string_geom[i])+'&')
+            if i ==  (len(tmp_string_geom)-1):
+                f.write(str(tmp_string_geom[i]))
+                #f.write(str(i))
+                #f.write(str(len(tmp_string_geom)))
+        f.write(str('\\\\ \hline') + '\n')
+        f.write(str(tmp_string_tcutpno[0]) + '&')
+        for i in range(len(tmp_string_energy)):
+            #f.write(str(tmp_string_tcutpno[0]) + '\t')
+            f.write(str(tmp_string_energy[i]))
+        f.write(str('\\\\ \hline') + '\n')
 
-
-
-
-if __name__ == '__main__':
+def main():
     args = get_argument()
+    os.chdir(args.mydirvariable)
     list_of_file = []
-    files = listdir(args.myDirVariable)
+    files = listdir(args.mydirvariable)
     for line in files:
         line = line.rstrip()
         if re.search('output.', line):
@@ -441,16 +445,14 @@ if __name__ == '__main__':
     for file in list_of_file:
 
         #points_final.Print_parametrs_of_calculation()
-
-
         points = find_clean_epsilon_and_twist(file)
         points = find_auxbasis(file, points)
         points = find_basis(file, points)
         reduced_text = find_reduced_text(file)
         make_workfile(file, points, reduced_text)
         points = find_method(points, reduced_text)
-        points = find_cutpairs(file,points)
-        points = find_cutpno(file,points)
+        points = find_cutpairs(file, points)
+        points = find_cutpno(file, points)
         points = find_SCF_energy(file, points)
         points = calculate_corr_E(file, points)
 
@@ -481,3 +483,7 @@ if __name__ == '__main__':
     make_GeomList(points_all)
 
     prepare_data_for_plot(points_all)
+
+
+if __name__ == '__main__':
+    main()
