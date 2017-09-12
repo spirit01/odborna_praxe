@@ -3,6 +3,7 @@
 import os
 from argparse import ArgumentParser
 from itertools import product
+from collections import defaultdict
 
 method_list_LPNO = ['LPNO-MkCCSD', 'LPNO-BWCCSD', 'LPNOCCSD']
 method_list_canonical = ['MkCCSD', 'BWCCSD', 'CCSD']
@@ -180,15 +181,18 @@ def count_correlation_energy(points):
 
 
 def prepare_data_for_plot(basis_list, method_list, tcutpno_list, points_all, args):
-    for basis, method, tcutpno in product(basis_list, method_list, tcutpno_list):
-        points_final = [p for p in points_all if p.basis == basis and p.method == method and p.t_cut_pno == tcutpno]
-        print('{} {} {}: {}'.format(basis, method, tcutpno, len(points_final)))
+    data = defaultdict(list)
+    for p in points_all:
+        if p.t_cut_pno != -1:
+            data[(p.basis, p.method, p.t_cut_pno)].append(p)
 
-        if points_final:
-            if args.verbose:
-                print_points(points_final)
+    for key, points in data.items():
+        print('{} {} {}: {}'.format(*key, len(points)))
 
-            make_result_file(basis, method, tcutpno, points_final)
+        if args.verbose:
+            print_points(points)
+
+        make_result_file(*key, points)
 
 
 def make_result_file(basis, method, tcutpno, points_final):
